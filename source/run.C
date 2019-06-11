@@ -10,5 +10,6 @@ void run(){
   gROOT->ProcessLine(".L TruthMatchW.C");
   gROOT->ProcessLine("TruthMatchW a");
   gROOT->ProcessLine("a.Loop()");
+  gROOT->ProcessLine(".q");
 }   
  
