@@ -4931,4 +4931,32 @@ Int_t TruthMatchW::Cut(Long64_t entry)
 // returns -1 otherwise.
    return 1;
 }
+
+
+double angle(TLorentzVector v1, TLorentzVector v2){
+  return ROOT::Math::VectorUtil::Angle<TLorentzVector, TLorentzVector>(v1,v2);
+}
+
+double cos_theta(TLorentzVector v1, TLorentzVector v2){
+  return ROOT::Math::VectorUtil::CosTheta<TLorentzVector, TLorentzVector>(v1,v2);
+}
+
+double WHelicity(TLorentzVector top4, TLorentzVector W4, TLorentzVector l4)
+{
+  double costheta;
+  // boost into rest frame
+  l4.Boost( -W4.BoostVector() );
+  W4.Boost( -top4.BoostVector() );
+  TVector3 W3rest(W4.Px(), W4.Py(), W4.Pz());
+  TVector3 l3rest(l4.Px(), l4.Py(), l4.Pz());
+  costheta = W3rest * l3rest / (W3rest.Mag() * l3rest.Mag());
+  return costheta;
+}
+
+double WHelicity2(TLorentzVector W4, TLorentzVector l4, TLorentzVector b4) {
+  l4.Boost(-W4.BoostVector());
+  b4.Boost(-W4.BoostVector());
+  return -TMath::Cos(b4.Angle(l4.BoostVector()));
+}
+
 #endif // #ifdef TruthMatchW_cxx
