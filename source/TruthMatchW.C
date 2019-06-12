@@ -35,24 +35,46 @@ void TruthMatchW::Loop()
 
 
    // top/antitop
-   TH1F *h_costheta[10];
+   TH1F *h_angles[10][10];
+   TH1F *h_ttbar[10];
    char hname[1000];
-   vector<string> ts={"top","antitop"};
-   for(int i=0;i<ts.size();i++){
-       sprintf(hname,"costheta_%s",ts[i].c_str()); 
-       h_costheta[i]=new TH1F(hname,hname,20, -1, 1);     
+   vector<string> ts={"top","antitop","nontop"};
+   vector<string> angs={"costheta","helicity","d_phiWl"};
+
+   double nbins=20, xmin=-1.1,xmax=1.1;
+   for(int i=0;i<angs.size();i++){
+     for(int j=0;j<ts.size();j++){
+       sprintf(hname,"%s_%s",angs[i].c_str(),ts[j].c_str()); 
+       if (angs[i].compare("d_phiWl")==0){
+	 nbins=40; xmin=-3.2;xmax=3.2;
+       }
+       h_angles[i][j]=new TH1F(hname,hname,nbins, xmin, xmax);     
+       nbins=20; xmin=-1.1;xmax=1.1;
+     }
    }
-
-
-
-
+   
+   vector<string> ttvars={"pTll","d_phi_ll"};
+   for(int i=0;i<ttvars.size();i++){
+     sprintf(hname,"ttbar_%s",ttvars[i].c_str()); 
+     if (ttvars[i].compare("pTll")==0){
+       nbins=80; xmin=0;xmax=200;
+     }
+     
+     if (ttvars[i].compare("d_phi_ll")==0){
+       nbins=40; xmin=-0.1;xmax=3.3;
+     }
+     
+     h_ttbar[i]=new TH1F(hname,hname,nbins, xmin, xmax);     
+     nbins=20; xmin=-1.1;xmax=1.1;
+   }
+   
+   
    Long64_t nentries = fChain->GetEntries();   
    cout<< nentries<< endl;
-   //nentries=5;
+   nentries=3;
    Long64_t nbytes = 0, nb = 0;
    int tau_flag=0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
-     //
      Long64_t ientry = LoadTree(jentry);
      if (ientry < 0) break;
      nb = fChain->GetEntry(jentry);   nbytes += nb;
@@ -61,7 +83,6 @@ void TruthMatchW::Loop()
      //cout<<"top "<< top_pt << " antitop= " << antitop_pt << " " << endl;
 
      int truth_size = m_truth_pdgId->size();
-     //cout << truth_size << endl;
 
      TLorentzVector part_4v[100];
 
@@ -209,23 +230,50 @@ void TruthMatchW::Loop()
 
      //Manage to reconstruct everything!!!
      //cout << lW.Pt()<< " "<<part_4v[0].Pt()<< " "<<part_4v[1].Pt() <<endl;
+     if(lW.Pt()!=0){
+       //cout << "angle(lWtop,Btop)=" << angle(lWtop,Btop)<< ";   WHelicity= "<< WHelicity(Top,Wtop,lWtop) << endl;
+       h_angles[2][2]->Fill(delta_phi(W,lW));
+     }
+
      if(lWtop.Pt()!=0){
        //cout << "angle(lWtop,Btop)=" << angle(lWtop,Btop)<< ";   WHelicity= "<< WHelicity(Top,Wtop,lWtop) << endl;
-       h_costheta[0]->Fill(WHelicity(Top,Wtop,lWtop));
+       h_angles[0][0]->Fill(WHelicity(Top,Wtop,lWtop));
+       h_angles[1][0]->Fill(WHelicity2(Wtop,lWtop,Btop));
+       h_angles[2][0]->Fill(delta_phi(Wtop,lWtop));
      }
 
      if(lWtopBar.Pt()!=0){
        //cout << "angle(lWtop,Btop)=" << angle(lWtop,Btop)<< ";   WHelicity= "<< WHelicity(Top,Wtop,lWtop) << endl;
-       h_costheta[1]->Fill(WHelicity(TopBar,WtopBar,lWtopBar));
+       h_angles[0][1]->Fill(WHelicity(TopBar,WtopBar,lWtopBar));
+       h_angles[1][1]->Fill(WHelicity2(WtopBar,lWtopBar,BtopBar));
+       h_angles[2][1]->Fill(delta_phi(WtopBar,lWtopBar));
+     }
+
+     TLorentzVector ttbar_ll;     
+     TLorentzVector lWtopRest;     TLorentzVector lWtopBarRest;
+     lWtopRest=lWtop;lWtopRest.Boost( -Wtop.BoostVector() ); lWtopRest.Boost( -Top.BoostVector() );
+     lWtopBarRest=lWtopBar;lWtopBarRest.Boost( -WtopBar.BoostVector() );lWtopBarRest.Boost( -TopBar.BoostVector() );
+     ttbar_ll=lWtopRest+lWtopBarRest;
+
+     if(lWtop.Pt()!=0 && lWtopBar.Pt()!=0){
+       h_ttbar[0]->Fill(ttbar_ll.Pt()/1e3);
+       h_ttbar[1]->Fill(delta_phi(lWtopRest,lWtopBarRest));
      }
 
    }
 
    string outname="Res_.root";
    TFile hfile(outname.c_str(),"RECREATE"); //,"tHq"
-   for(int i=0;i<ts.size();i++){  
-     h_costheta[i]->Write(); 
+   for(int i=0;i<angs.size();i++){
+     for(int j=0;j<ts.size();j++){  
+       h_angles[i][j]->Write(); 
+     }
    }
+
+   for(int i=0;i<ttvars.size();i++){
+     h_ttbar[i]->Write();
+   }
+
    hfile.Close();
 
 }
