@@ -3052,9 +3052,13 @@ TruthMatchW::TruthMatchW(TTree *tree) : fChain(0)
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
    if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("../../gn1_413008d_nom.root");
+     //TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("../../gn1_413008d_nom.root");
+     TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("../../413008d_fract.root");
+     //TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("../../410155d_fract.root");
       if (!f || !f->IsOpen()) {
-         f = new TFile("../../gn1_413008d_nom.root");
+	//f = new TFile("../../gn1_413008d_nom.root");
+	f = new TFile("../../413008d_fract.root");
+	//f = new TFile("../../410155d_fract.root");
       }
       f->GetObject("nominal",tree);
 
@@ -4939,6 +4943,10 @@ double angle(TLorentzVector v1, TLorentzVector v2){
 
 double cos_theta(TLorentzVector v1, TLorentzVector v2){
   return ROOT::Math::VectorUtil::CosTheta<TLorentzVector, TLorentzVector>(v1,v2);
+}
+
+double delta_phi(TLorentzVector v1, TLorentzVector v2){
+  return ROOT::Math::VectorUtil::DeltaPhi<TLorentzVector, TLorentzVector>(v1,v2);
 }
 
 double WHelicity(TLorentzVector top4, TLorentzVector W4, TLorentzVector l4)
