@@ -32,10 +32,25 @@ void TruthMatchW::Loop()
 //by  b_branchname->GetEntry(ientry); //read only this branch
   cout << "Loop"<< endl;
    if (fChain == 0) return;
+
+
+   // top/antitop
+   TH1F *h_costheta[10];
+   char hname[1000];
+   vector<string> ts={"top","antitop"};
+   for(int i=0;i<ts.size();i++){
+       sprintf(hname,"costheta_%s",ts[i].c_str()); 
+       h_costheta[i]=new TH1F(hname,hname,20, -1, 1);     
+   }
+
+
+
+
    Long64_t nentries = fChain->GetEntries();   
    cout<< nentries<< endl;
-   nentries=5;
+   //nentries=5;
    Long64_t nbytes = 0, nb = 0;
+   int tau_flag=0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
      //
      Long64_t ientry = LoadTree(jentry);
@@ -43,7 +58,6 @@ void TruthMatchW::Loop()
      nb = fChain->GetEntry(jentry);   nbytes += nb;
      //      if (Cut(ientry) < 5) continue;
      //cout << "ientry "<< ientry << ",jentry = "<< jentry<< endl;
-     //top_pt:antitop_pt:m_truth_pt:m_truth_pdgId
      //cout<<"top "<< top_pt << " antitop= " << antitop_pt << " " << endl;
 
      int truth_size = m_truth_pdgId->size();
@@ -112,92 +126,106 @@ void TruthMatchW::Loop()
 		 nu_4v[nu_count].SetPtEtaPhiM(t_pt,t_eta,t_phi,t_m);
 		 nu_count++;
                }
-       
+
+               if(abs(m_truth_pdgId->at(i))==15 || abs(m_truth_pdgId->at(i))==16 ){
+		 tau_flag++;
+		 break;
+	       }       
+     }
+     
+     if(tau_flag>0){
+       tau_flag=0;
+       continue;
      }
      //cout<<"W_count<< t_count<< b_count<< q_count<< l_count<< nu_count=0;"<< endl;
      //cout << W_count<< t_count<< b_count<< q_count<< l_count << nu_count<< endl;
-     TLorentzVector W; TLorentzVector WReco;
+     TLorentzVector W; TLorentzVector WReco;     TLorentzVector lW;
      W=part_4v[0]+part_4v[1];
-     //WReco=part_4v[19]+part_4v[20];
      //cout << "W from nu+lep = "<< .Pt()<< endl;
      //cout << "W = "<< W.Pt()<< ", reco  = "<<WReco.Pt()<< endl;
 
-     TLorentzVector Top;
-     TLorentzVector Wtop; TLorentzVector WtopReco;
-     Wtop=part_4v[3];
+     TLorentzVector Top;     TLorentzVector Btop;
+     TLorentzVector Wtop; TLorentzVector WtopReco;     TLorentzVector lWtop;
+     Wtop=part_4v[3];     Btop=part_4v[4];
      Top=part_4v[3]+part_4v[4];
 
+     //cout << "Wtop = "<< Wtop.Pt()<< ", Top  = "<<Top.Pt()<< endl;
 
-     TLorentzVector TopBar;
-     TLorentzVector WtopBar; TLorentzVector WtopBarReco;
+     TLorentzVector TopBar;     TLorentzVector BtopBar;
+     TLorentzVector WtopBar; TLorentzVector WtopBarReco;     TLorentzVector lWtopBar;
      TopBar=part_4v[6]+part_4v[7];
-     WtopBar=part_4v[6];
+     WtopBar=part_4v[6];     BtopBar=part_4v[7];
      
      //find match to wtopreco:
-
-     TLorentzVector lepW;
-     for(int il=0; il<l_count; il++){
-       for(int inu=0; inu<nu_count; inu++){
-	 lepW=l_4v[il]+nu_4v[inu];
-	 if (abs(Wtop.Pt()-lepW.Pt())<0.1){
-	   //cout << "success Wtopreco: "<<WtopReco.Pt()<< " "<< il << " "<< inu<< endl;
-	   WtopReco=l_4v[il]+nu_4v[inu];
-	 }
-
-	 if (abs(WtopBar.Pt()-lepW.Pt())<0.1){
-	   WtopBarReco=l_4v[il]+nu_4v[inu];
-	   //cout << "success WtopBarreco: "<<WtopBarReco.Pt()<< " "<< il << " "<< inu<< endl;
-	 }
-
-	 if (abs(W.Pt()-lepW.Pt())<0.1){
-	   WReco=l_4v[il]+nu_4v[inu];
-	   //cout << "success Wreco: "<<WReco.Pt()<< " "<< il << " "<< inu<< endl;
-	 }
-
-
-       }
-     }
-
-
      //find match to wtopreco:
      TLorentzVector qW;
-     for(int iu=0; iu<qu_count; iu++){
-       for(int id=0; id<qd_count; id++){
-	 qW=qu_4v[iu]+qd_4v[id];
-	 if (abs(Wtop.Pt()-qW.Pt())<0.1){
-	   WtopReco=qu_4v[iu]+qd_4v[id];
-	   //cout << "success Wtopreco: "<<WtopReco.Pt()<< " "<< iu << " "<< id<< endl;
-	 }
+     TLorentzVector lepW;
+     vector<TLorentzVector> Ws={W,Wtop,WtopBar};
+     vector<TLorentzVector> l_Ws={lW,lWtop,lWtopBar};
+     vector<TLorentzVector> WsReco={WReco,WtopReco,WtopBarReco};
+     for(int iv=0; iv<3; iv++){	   
 
-	 if (abs(WtopBar.Pt()-qW.Pt())<0.1){
-	   WtopBarReco=qu_4v[iu]+qd_4v[id];
-	   //cout << "success WtopBarreco: "<<WtopBarReco.Pt()<< " "<< iu << " "<< id<< endl;
-	 }
-
-	 if (abs(W.Pt()-qW.Pt())<0.1){
-	   WReco=qu_4v[iu]+qd_4v[id];
-	   //cout << "success Wreco: "<<WReco.Pt()<< " "<< iu << " "<< id<< endl;
-	 }
-
+       for(int il=0; il<l_count; il++){
+	 for(int inu=0; inu<nu_count; inu++){
+	   lepW=l_4v[il]+nu_4v[inu];
+	   //cout <<" l"<<  il<<" "<< lepW.Pt() << " , Ws["<<iv<<"]"<< Ws[iv].Pt() << endl;
+	   if( abs(Ws[iv].Pt()-lepW.Pt())<0.1 ){
+	     //cout << "success Wtopreco: "<<WtopReco.Pt()<< " "<< il << " "<< inu<< endl;
+	     // WtopReco=l_4v[il]+nu_4v[inu];
+	     WsReco[iv]=lepW;
+	     l_Ws[iv]=l_4v[il];
+	     continue;
+	   }	   
+	 }	     
+       }
+       for(int iu=0; iu<qu_count; iu++){
+	 for(int id=0; id<qd_count; id++){
+	   qW=qu_4v[iu]+qd_4v[id];
+	   //cout <<"  q "<<iu<<" " << qW.Pt() << " , Ws["<<iv<<"]"<< Ws[iv].Pt() << endl;
+	   if( abs(Ws[iv].Pt()-qW.Pt())<0.1 ){
+	     WsReco[iv]=qW;
+	     continue;
+	   }
+	 }	 
        }
      }
 
-     //WtopReco=part_4v[11]+part_4v[12];
-     //cout << "top from W+b = "<< Top.Pt()<< endl;
-     //cout << "Wtop = "<< Wtop.Pt()<< ", reco  = "<<WtopReco.Pt()<< endl;
-     //WtopBarReco=part_4v[9]+part_4v[10];
-     //cout << "WtopBar = "<< WtopBar.Pt()<< ", reco  = "<<WtopBarReco.Pt()<< endl;
-     //cout << "topbar from W+b = "<< TopBar.Pt()<< endl;
+     WReco=WsReco[0];
+     WtopReco=WsReco[1];
+     WtopBarReco=WsReco[2];
+     //lW,lWtop,lWtopBar
+     lW=l_Ws[0];lWtop=l_Ws[1];lWtopBar=l_Ws[2];
 
-     //cout << '\n'<<'\n'<<'\n'<<endl;
 
      if (abs(Top.Pt()-top_pt)>0.1  || abs(TopBar.Pt()-antitop_pt)>0.1 ){ 
        cout << "fail: Top.Pt()-top_pt="<< Top.Pt()-top_pt<< ",  or TopBar.Pt()-antitop_pt = "<< TopBar.Pt()-antitop_pt  << endl;
+       continue;
      }
 
      if (abs(W.Pt()-WReco.Pt())>0.1 || abs(Wtop.Pt()-WtopReco.Pt())>0.1  || abs(WtopBar.Pt()-WtopBarReco.Pt())>0.1 ){ 
-       cout << "fail Wreco: W"<< W.Pt()-WReco.Pt() <<"   wtop="<<Wtop.Pt()-WtopReco.Pt() << ",  or wtopbar = "<< WtopBar.Pt()-WtopBarReco.Pt()  << endl;
+       cout << jentry<< " fail Wreco: W"<< W.Pt()-WReco.Pt() <<"   wtop="<<Wtop.Pt()-WtopReco.Pt() << ",  or wtopbar = "<< WtopBar.Pt()-WtopBarReco.Pt()  << endl;
+       continue;
+     }
+
+     //Manage to reconstruct everything!!!
+     //cout << lW.Pt()<< " "<<part_4v[0].Pt()<< " "<<part_4v[1].Pt() <<endl;
+     if(lWtop.Pt()!=0){
+       //cout << "angle(lWtop,Btop)=" << angle(lWtop,Btop)<< ";   WHelicity= "<< WHelicity(Top,Wtop,lWtop) << endl;
+       h_costheta[0]->Fill(WHelicity(Top,Wtop,lWtop));
+     }
+
+     if(lWtopBar.Pt()!=0){
+       //cout << "angle(lWtop,Btop)=" << angle(lWtop,Btop)<< ";   WHelicity= "<< WHelicity(Top,Wtop,lWtop) << endl;
+       h_costheta[1]->Fill(WHelicity(TopBar,WtopBar,lWtopBar));
      }
 
    }
+
+   string outname="Res_.root";
+   TFile hfile(outname.c_str(),"RECREATE"); //,"tHq"
+   for(int i=0;i<ts.size();i++){  
+     h_costheta[i]->Write(); 
+   }
+   hfile.Close();
+
 }
